@@ -1,0 +1,32 @@
+[
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Good for newcomers: well-scoped tasks requiring little project context"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Maintainers would welcome a contribution here"
+  },
+  {
+    "name": "bug",
+    "color": "d73a4a",
+    "description": "Something isn't working in the playbook"
+  },
+  {
+    "name": "enhancement",
+    "color": "a2eeef",
+    "description": "New playbook capability or improvement"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Improvements or additions to playbook guidance and repository docs"
+  },
+  {
+    "name": "jit",
+    "color": "5319e7",
+    "description": "Temporary repository administrator access request"
+  }
+]

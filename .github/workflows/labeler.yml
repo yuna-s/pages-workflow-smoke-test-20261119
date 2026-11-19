@@ -1,0 +1,80 @@
+name: Sync labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/labels.json
+      - .github/workflows/labeler.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  labeler:
+    name: Sync repository labels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Apply repository labels
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const fs = require('node:fs');
+            const labels = JSON.parse(fs.readFileSync('.github/labels.json', 'utf8'));
+
+            if (!Array.isArray(labels)) {
+              throw new Error('.github/labels.json must contain an array of labels.');
+            }
+
+            const names = new Set();
+            for (const label of labels) {
+              if (!label || typeof label.name !== 'string' || !label.name.trim() ||
+                  typeof label.color !== 'string' || !/^[0-9a-f]{6}$/i.test(label.color) ||
+                  typeof label.description !== 'string') {
+                throw new Error('Each label must have a non-empty name, a six-digit hex color, and a description string.');
+              }
+              const name = label.name.toLowerCase();
+              if (names.has(name)) {
+                throw new Error(`Duplicate label definition: ${label.name}`);
+              }
+              names.add(name);
+            }
+
+            const existing = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              ...context.repo,
+              per_page: 100,
+            });
+            const byName = new Map(existing.map(label => [label.name.toLowerCase(), label]));
+
+            for (const label of labels) {
+              const current = byName.get(label.name.toLowerCase());
+              if (!current) {
+                await github.rest.issues.createLabel({
+                  ...context.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description,
+                });
+                core.info(`Created label: ${label.name}`);
+              } else if (current.name !== label.name ||
+                         current.color.toLowerCase() !== label.color.toLowerCase() ||
+                         (current.description ?? '') !== label.description) {
+                await github.rest.issues.updateLabel({
+                  ...context.repo,
+                  name: current.name,
+                  new_name: label.name,
+                  color: label.color,
+                  description: label.description,
+                });
+                core.info(`Updated label: ${label.name}`);
+              } else {
+                core.info(`Label unchanged: ${label.name}`);
+              }
+            }
